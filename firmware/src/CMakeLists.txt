@@ -2,7 +2,8 @@
 # without default 'CMakeLists.txt' file.
 
 set(app_sources
-	"empty.c"
+	"main.c"
+	"led.c"
 )
 
 idf_component_register(SRCS ${app_sources})
