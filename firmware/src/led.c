@@ -9,7 +9,7 @@ static const unsigned char pins[3] = {LED_1_DAT, LED_2_DAT, LED_3_DAT};
 
 static unsigned char write_wait_flags = LED_WRITE_ALL_COMPLETE;
 
-void deallocate_tx_buffer(rmt_channel_t channel, void *b)
+void signal_tx_done(rmt_channel_t channel, void *b)
 {
     write_wait_flags |= channel;
 }
@@ -48,7 +48,7 @@ void setup_leds(size_t num_rows)
         rmt_config(&config);
         rmt_driver_install(i, 0, 0);
     }
-    rmt_register_tx_end_callback(&deallocate_tx_buffer, NULL);
+    rmt_register_tx_end_callback(&signal_tx_done, NULL);
 }
 
 rmt_item32_t convertToRmt(unsigned int b)
