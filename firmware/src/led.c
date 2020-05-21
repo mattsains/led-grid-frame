@@ -23,8 +23,8 @@ void setup_leds(size_t num_rows)
     _num_rows = num_rows;
     for (unsigned char i = 0; i < 3; i++)
     {
-        activeBuffers[i] = malloc((24 * num_rows + 1) * sizeof(rmt_item32_t));
-        standbyBuffers[i] = malloc((24 * num_rows + 1) * sizeof(rmt_item32_t));
+        activeBuffers[i] = malloc((24 * num_rows * 3 + 1) * sizeof(rmt_item32_t));
+        standbyBuffers[i] = malloc((24 * num_rows * 3 + 1) * sizeof(rmt_item32_t));
     }
 
     for (unsigned char i = 0; i < 3; i++)
@@ -62,26 +62,27 @@ void set_strip(unsigned int *data)
 {
     for (size_t row = 0; row < _num_rows; row++)
     {
-        for (unsigned char column = 0; column < 3; column++)
+        for (unsigned char column = 0; column < 9; column++)
         {
-            rmt_item32_t *buffer = standbyBuffers[column];
-            unsigned int pixel = data[column + row * 3];
+            rmt_item32_t *buffer = standbyBuffers[(column / 3) % 3];
+            unsigned int pixel = data[column + row * 9];
 
+            size_t bufferPos = (column % 3) * 9 + row;
             // we have: [0]bB[8]gG[16]rR
             // need to convert to [0]Gg[8]Rr[16]Bb
 
             for (unsigned char green_bit = 0; green_bit < 8; green_bit++)
             {
-                buffer[row * 24 + green_bit] = convertToRmt(pixel & (1 << (15 - green_bit)));
+                buffer[bufferPos * 24 + green_bit] = convertToRmt(pixel & (1 << (15 - green_bit)));
             }
             for (unsigned char red_bit = 0; red_bit < 8; red_bit++)
             {
-                buffer[row * 24 + 8 + red_bit] = convertToRmt(pixel & (1 << (23 - red_bit)));
+                buffer[bufferPos * 24 + 8 + red_bit] = convertToRmt(pixel & (1 << (23 - red_bit)));
             }
 
             for (unsigned char blue_bit = 0; blue_bit < 8; blue_bit++)
             {
-                buffer[row * 24 + 16 + blue_bit] = convertToRmt(pixel & (1 << (7 - blue_bit)));
+                buffer[bufferPos * 24 + 16 + blue_bit] = convertToRmt(pixel & (1 << (7 - blue_bit)));
             }
         }
     }
@@ -92,11 +93,11 @@ void set_strip(unsigned int *data)
 
     for (unsigned char i = 0; i < 3; i++)
     {
-        (standbyBuffers[i])[_num_rows * 24] = (rmt_item32_t){{{2419, 0, 2419, 0}}}; //60us pause before next write
+        (standbyBuffers[i])[3 * _num_rows * 24] = (rmt_item32_t){{{2419, 0, 2419, 0}}}; //60us pause before next write
         rmt_item32_t *tmp = activeBuffers[i];
         activeBuffers[i] = standbyBuffers[i];
         standbyBuffers[i] = tmp;
 
-        rmt_write_items(i, activeBuffers[i], _num_rows * 24 + 1, false);
+        rmt_write_items(i, activeBuffers[i], 3 * _num_rows * 24 + 1, false);
     }
 }
