@@ -2,10 +2,10 @@
 
 void app_main(void)
 {
-#define size 162
-    setup_leds(size / 9);
+#define size 171
+    setup_leds(size / 9 + 8);
 
-    unsigned int data[size] = {0};
+    unsigned int data[size + 80] = {0};
 
     set_strip(data);
     vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -27,6 +27,10 @@ void app_main(void)
         set_strip(data);
         vTaskDelay(200 / portTICK_PERIOD_MS);
 
+        for (unsigned char row = 0; row < 9; row++)
+        {
+            data[162 + (row % 3) * 9 + (row / 3) * 3] = data[81 + (8 - row) * 9];
+        }
         for (unsigned col = 0; col < 8; col++)
         {
             for (unsigned char row = 0; row < 9; row++)
