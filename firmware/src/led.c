@@ -67,7 +67,7 @@ void set_strip(unsigned int *data)
             rmt_item32_t *buffer = standbyBuffers[(column / 3) % 3];
             unsigned int pixel = data[column + row * 9];
 
-            size_t bufferPos = (column % 3) * 9 + row;
+            size_t bufferPos = (column % 3) * 9 + row % 9 + (row / 9) * 9 * 3;
             // we have: [0]bB[8]gG[16]rR
             // need to convert to [0]Gg[8]Rr[16]Bb
 
