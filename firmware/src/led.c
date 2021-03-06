@@ -14,17 +14,25 @@ void signal_tx_done(rmt_channel_t channel, void *b)
     write_wait_flags |= channel;
 }
 
-static size_t _num_rows;
+const static size_t _num_rows = 18;
+const static size_t num_buffer_entries = _num_rows * 6 + _num_rows/3;
 static rmt_item32_t *activeBuffers[3];
 static rmt_item32_t *standbyBuffers[3];
 
-void setup_leds(size_t num_rows)
+void setup_leds()
 {
-    _num_rows = num_rows;
+    
     for (unsigned char i = 0; i < 3; i++)
     {
-        activeBuffers[i] = malloc((24 * num_rows * 3 + 1) * sizeof(rmt_item32_t));
-        standbyBuffers[i] = malloc((24 * num_rows * 3 + 1) * sizeof(rmt_item32_t));
+        
+        activeBuffers[i] = malloc((24 * num_buffer_entries + 1) * sizeof(rmt_item32_t));
+        for(size_t j = 0; j<(24 * num_buffer_entries + 1); j++) {
+            (activeBuffers[i])[j] = (rmt_item32_t) {{{32, 1, 69, 0}}};
+        }
+        standbyBuffers[i] = malloc((24 * num_buffer_entries + 1) * sizeof(rmt_item32_t));
+        for(size_t j = 0; j<(24 * num_buffer_entries + 1); j++) {
+            (standbyBuffers[i])[j] = (rmt_item32_t) {{{32, 1, 69, 0}}};
+        }
     }
 
     for (unsigned char i = 0; i < 3; i++)
@@ -62,14 +70,42 @@ void set_strip(unsigned int *data)
 {
     for (size_t row = 0; row < _num_rows; row++)
     {
-        for (unsigned char column = 0; column < 9; column++)
+        for (unsigned char column = 0; column < 19; column++)
         {
-            rmt_item32_t *buffer = standbyBuffers[(column / 3) % 3];
-            unsigned int pixel = data[column + row * 9];
+            unsigned int pixel = data[column + row * 19];
 
-            size_t bufferPos = (column % 3) * 9 + row % 9 + (row / 9) * 9 * 3;
+            size_t bufferNo;
+            size_t bufferPos;
+
+            if (row < 9) {
+                bufferNo = 
+                    column == 18 ?
+                    ((row / 3) % 3)
+                    : (((17 - column) / 3) % 3);
+                
+                bufferPos = 
+                    column == 18 ?
+                    (54 + (row / 9) * 57 + row % 3)
+                    : ((8 - row) % 9 + ((17 - column) % 3) * 9 + (column / 9) * 27 + 57 * (row / 9));
+            } else {
+                bufferNo = 
+                    column == 18 ?
+                    ((row / 3) % 3)
+                    : ((column / 3) % 3);
+                
+                bufferPos = 
+                    column == 18 ?
+                    ((row - 9) % 3 + 57)
+                    : ((1 - (column / 9)) * 27 + 60 + 9 * ((column % 9) % 3) + row % 9);
+            }
+
+            // if (pixel != 0) {
+            //     ESP_LOGI("led", "(%d,%d): %d %d", column, row, bufferNo, bufferPos);
+            // }
+
             // we have: [0]bB[8]gG[16]rR
-            // need to convert to [0]Gg[8]Rr[16]Bb
+            // need to convert to [0]Gg[8]Rr[16]Bb            
+            rmt_item32_t *buffer = standbyBuffers[bufferNo];
 
             for (unsigned char green_bit = 0; green_bit < 8; green_bit++)
             {
@@ -93,11 +129,11 @@ void set_strip(unsigned int *data)
 
     for (unsigned char i = 0; i < 3; i++)
     {
-        (standbyBuffers[i])[3 * _num_rows * 24] = (rmt_item32_t){{{2419, 0, 2419, 0}}}; //60us pause before next write
+        (standbyBuffers[i])[24 * num_buffer_entries] = (rmt_item32_t){{{2419, 0, 2419, 0}}}; //60us pause before next write
         rmt_item32_t *tmp = activeBuffers[i];
         activeBuffers[i] = standbyBuffers[i];
         standbyBuffers[i] = tmp;
 
-        rmt_write_items(i, activeBuffers[i], 3 * _num_rows * 24 + 1, false);
+        rmt_write_items(i, activeBuffers[i], 24 * num_buffer_entries + 1, false);
     }
 }

@@ -1,53 +1,20 @@
 #include "main.h"
 
+
 void app_main(void)
 {
-#define size 171
-    setup_leds(size / 9 + 8);
+    unsigned int data[342] = {0};
 
-    unsigned int data[size + 80] = {0};
+    setup_leds();
 
-    set_strip(data);
-    vTaskDelay(500 / portTICK_PERIOD_MS);
     while (1)
     {
-
-        for (unsigned char row = 0; row < 9; row++)
+        for (int i = 0; i < 342; i++)
         {
-            if (esp_random() * 1.0 / UINT_MAX < 0.1)
-            {
-                data[8 + row * 9] = esp_random() & 0xffffff;
-            }
-            else
-            {
-                data[8 + row * 9] = 0;
-            }
-        }
-
-        set_strip(data);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-
-        for (unsigned char row = 0; row < 9; row++)
-        {
-            data[162 + (row % 3) * 9 + (row / 3) * 3] = data[81 + (8 - row) * 9];
-        }
-        for (unsigned col = 0; col < 8; col++)
-        {
-            for (unsigned char row = 0; row < 9; row++)
-            {
-                data[81 + row * 9 + col] = data[81 + row * 9 + col + 1];
-            }
-        }
-        for (unsigned char row = 0; row < 9; row++)
-        {
-            data[81 + row * 9 + 8] = data[row * 9];
-        }
-        for (unsigned col = 0; col < 8; col++)
-        {
-            for (unsigned char row = 0; row < 9; row++)
-            {
-                data[row * 9 + col] = data[row * 9 + col + 1];
-            }
+            data[i] = 0x010000;
+            if (i > 0) data[i-1] = 0;
+            set_strip(data);
+            vTaskDelay(90 / portTICK_PERIOD_MS);
         }
     }
 }
