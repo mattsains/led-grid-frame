@@ -1,26 +1,44 @@
+#! /usr/bin/env python3
 import sys
 import glob
 from os import path
 
+import math
+
 from PIL import Image
 
-globs = sys.argv[1::]
+inputFile = sys.argv[1::][0]
+outputFile = sys.argv[1::][1]
 
-files = [file for g in globs for file in glob.glob(g) if path.isfile(file) ]
-
-outwriter = open("out.c", "w")
+outwriter = open(outputFile, "w")
 num = 0
-for file in files:
-    with Image.open(file) as image:
-        pixels = image.getdata()
+
+def convertColor(pixel):
+    _25overmax = 26/math.pow(2, 255)
+    red = int(pixel[0] / 5)
+    green = int(pixel[1] / 5)
+    blue = int(pixel[2] / 5)
+    
+    return (red<<16) + (green<<8) + blue
+
+with Image.open(inputFile) as image:
+    for frame in range(0, image.n_frames):
+        image.seek(frame)
+        # pixels = image.convert().resize((19, 27)).getdata()
+        pixels = image.convert().resize((19, 27), Image.NEAREST).getdata()
         
         outwriter.write(f"static const unsigned int data_{num}[{len(pixels)}] = ")
         outwriter.write("{\n")
-        for pixel in pixels:
-            outwriter.write(str((pixel[0]<<16) + (pixel[1]<<8) + (pixel[2])))
+
+        result = [str(convertColor(pixel)) for pixel in pixels]
+        result.reverse()
+
+        for c in result:
+            outwriter.write(c)
             outwriter.write(",")
+
         outwriter.write("};\n")
-    num+=1
+        num+=1
     
 outwriter.write(f"static const unsigned int * data[{num}] =")
 outwriter.write("{\n");

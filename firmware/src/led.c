@@ -14,7 +14,7 @@ void signal_tx_done(rmt_channel_t channel, void *b)
     write_wait_flags |= channel;
 }
 
-const static size_t _num_rows = 18;
+const static size_t _num_rows = 27;
 const static size_t num_buffer_entries = _num_rows * 6 + _num_rows/3;
 static rmt_item32_t *activeBuffers[3];
 static rmt_item32_t *standbyBuffers[3];
@@ -87,7 +87,7 @@ void set_strip(unsigned int *data)
                     column == 18 ?
                     (54 + (row / 9) * 57 + row % 3)
                     : ((8 - row) % 9 + ((17 - column) % 3) * 9 + (column / 9) * 27 + 57 * (row / 9));
-            } else {
+            } else if (row < 18) {
                 bufferNo = 
                     column == 18 ?
                     ((row / 3) % 3)
@@ -97,6 +97,16 @@ void set_strip(unsigned int *data)
                     column == 18 ?
                     ((row - 9) % 3 + 57)
                     : ((1 - (column / 9)) * 27 + 60 + 9 * ((column % 9) % 3) + row % 9);
+            } else {
+                bufferNo = 
+                    column == 18 ?
+                    ((row - 18) / 3)
+                    : (((17 - column) / 3) % 3);
+                
+                bufferPos = 
+                    column == 18 ?
+                    (168 + (row - 18)%3)
+                    : (140 - (row - 18) - 9*(column%3) + 27*(column / 9));
             }
 
             // if (pixel != 0) {

@@ -7,10 +7,10 @@ void app_main(void)
 
     while (1)
     {
-        for (int i = 0; i < 36; i++)
+        for (int i = 0; i < sizeof(data)/sizeof(data[0]); i++)
         {
             set_strip(data[i]);
-            vTaskDelay(25 / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
     }
 }
