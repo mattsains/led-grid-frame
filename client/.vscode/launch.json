@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch firefox",
+            "type": "firefox",
+            "request": "launch",
+            "reAttach": true,
+            "url": "http://localhost:8080/index.html",
+            "pathMappings": [
+                {
+                    "url": "webpack://src",
+                    "path": "${workspaceFolder}/src"
+                },
+                {
+                    "url": "http://localhost:8080",
+                    "path": "${workspaceFolder}"
+                }
+            ]
+        },
+        {
+            "name": "Launch chrome",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:8080/index.html",
+            "webRoot": "${workspaceFolder}",
+            "runtimeExecutable": "C:\\Users\\Matt\\AppData\\Local\\Chromium\\Application\\chrome.exe"
+        }
+    ]
+}

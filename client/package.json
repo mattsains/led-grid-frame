@@ -1,0 +1,30 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve",
+    "server": "ts-node mock-ws-server/index.ts"
+  },
+  "dependencies": {
+    "awesome-typescript-loader": "^5.2.1",
+    "css-loader": "^5.1.1",
+    "file-loader": "^6.2.0",
+    "mini-css-extract-plugin": "^1.3.9",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "sass": "^1.32.8",
+    "sass-loader": "^11.0.1",
+    "style-loader": "^2.0.0",
+    "typescript": "^4.2.3",
+    "webpack": "^5.24.3"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^17.0.1",
+    "@types/ws": "^7.4.0",
+    "webpack-cli": "^4.5.0",
+    "webpack-dev-server": "^3.11.2",
+    "ws": "^7.4.4",
+    "chalk": "^4.1.0"
+  }
+}
