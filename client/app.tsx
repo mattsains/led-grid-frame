@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { render } from 'react-dom';
 import Canvas from './canvas';
 
-let webSocket = new WebSocket("ws://localhost:8000");
+let webSocket = new WebSocket("ws://192.168.0.199");
 
 let pixels = new Uint32Array(513).fill(0);
 
@@ -14,12 +14,14 @@ export default () => {
 
 
     const setPixel = (x: number, y: number, color: number) => {
-        pixels[x + y * 19] = color;
+        pixels[513 - x - y * 19] = color;
         ref.current.setPixel(x, y, color);
     }
 
+    (document as any).setPixel = setPixel;
+
     setInterval(() => {
-        setPixel(i, j, Math.floor(Math.random() * 0xffffff));
+        setPixel(i, j, 0xff);
         i++;
         if (i == 19) {
             j++;

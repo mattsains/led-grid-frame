@@ -74,6 +74,8 @@ void set_strip(unsigned int *data)
         {
             unsigned int pixel = data[column + row * 19];
 
+            if (pixel != 0xff && pixel != 0) ESP_LOGI("led", "detected bad LED at %d;%d", row, column);
+
             size_t bufferNo;
             size_t bufferPos;
 
