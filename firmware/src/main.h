@@ -17,6 +17,7 @@
 #include "esp_task_wdt.h"
 #include "esp_int_wdt.h"
 
+void ledUpdate();
 static esp_err_t led_handler(httpd_req_t *req);
 static void wifi_connect();
 static void connect_handler(void* arg, esp_event_base_t event_base,

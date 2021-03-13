@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { render } from 'react-dom';
 import Canvas from './canvas';
 
-let webSocket = new WebSocket("ws://192.168.0.199");
+let webSocket = new WebSocket("ws://192.168.0.198");
 
 let pixels = new Uint32Array(513).fill(0);
 
@@ -29,7 +29,7 @@ export default () => {
         }
 
         webSocket.send(pixels);
-    }, 1000);
+    }, 100);
 
     return (<Canvas ref={ref} />);
 }

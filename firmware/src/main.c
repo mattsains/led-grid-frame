@@ -21,37 +21,52 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &connect_handler, &server));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &server));
 
+    // TaskHandle_t Core1TaskHnd;
+    // xTaskCreatePinnedToCore(ledUpdate, "led_update", 1000, NULL, 1, &Core1TaskHnd, 1);
+    ledUpdate();
+}
+
+void ledUpdate() {
     while (true) {
-        if (xSemaphoreTake(writing, portMAX_DELAY) == pdTRUE) {
+        // if (xSemaphoreTake(writing, portMAX_DELAY) == pdTRUE) {
             set_strip(ingested);
-            xSemaphoreGive(writing);
-        } else {
-            ESP_LOGI("main", "failed to get semaphore from main loop");
-        }
+            // xSemaphoreGive(writing);
+        // } else {
+            // ESP_LOGI("main", "failed to get semaphore from main loop");
+        // }
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
+static unsigned int data[513] = {0};
+static unsigned int frame = 0;
 static esp_err_t led_handler(httpd_req_t *req)
 {
-    static unsigned int data[513] = {0};
+    frame++;
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = data;
+    ws_pkt.payload = (uint8_t *) data;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
     vTaskDelay(10 / portTICK_PERIOD_MS); // https://www.esp32.com/viewtopic.php?f=2&t=17510&start=10
 
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 513 * 4);
     if (ret != ESP_OK) {
-        ESP_LOGE("led_handler", "httpd_ws_recv_frame failed with %d", ret);
+        ESP_LOGE("led_handler", "%d: httpd_ws_recv_frame failed with %d", frame, ret);
         return ret;
     }
-    ESP_LOGI("led_handler", "Got packet with message: %s (len: %d)", ws_pkt.payload, ws_pkt.len);
-    ESP_LOGI("led_handler", "Packet type: %d", ws_pkt.type);
-    
+    ESP_LOGI("led_handler", "%d: Got packet with message: %s (len: %d)", frame, ws_pkt.payload, ws_pkt.len);    
 
     if (ret != ESP_OK) {
-        ESP_LOGE("led_handler", "httpd_ws_send_frame failed with %d", ret);
+        ESP_LOGE("led_handler", "%d: httpd_ws_send_frame failed with %d", frame, ret);
     } else {
+        if (!ws_pkt.final) {
+            ESP_LOGE("led_handler", "%d: frame was not marked as final", frame);
+            return ESP_OK;
+        }
+        if (ws_pkt.len != 513 * 4) {
+            ESP_LOGE("led_handler", "%d: expected length %d but was %d", frame, 513*4, ws_pkt.len);
+            return ESP_OK;
+        }
         // if (xSemaphoreTake(writing, 1000) == pdTRUE) {
             memcpy(ingested, data, 513 * 4);
         //     xSemaphoreGive(writing);
@@ -59,7 +74,7 @@ static esp_err_t led_handler(httpd_req_t *req)
         //     ESP_LOGI("main", "failed to get semaphore");
         // }
     }
-    return ret;
+    return ESP_OK;
 }
 
 #define WIFI_CONNECTED_BIT BIT0
