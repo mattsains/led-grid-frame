@@ -2,14 +2,15 @@
 #include "wifi_pass.h"
 
 EventGroupHandle_t mustRedraw;
-static SemaphoreHandle_t writing = NULL;
+EventGroupHandle_t readyForNewMessage;
 static unsigned int ingested[513] = {0};
 
 void app_main(void)
 {
     mustRedraw = xEventGroupCreate();
-    writing = xSemaphoreCreateBinary();
-    xSemaphoreGive(writing);
+    readyForNewMessage = xEventGroupCreate();
+    xEventGroupSetBits(mustRedraw, 1);
+    xEventGroupSetBits(readyForNewMessage, 1);
 
     static httpd_handle_t server = NULL;
 
@@ -39,39 +40,39 @@ static unsigned int data[513] = {0};
 static unsigned int frame = 0;
 static esp_err_t led_handler(httpd_req_t *req)
 {
+    while (xEventGroupWaitBits(readyForNewMessage, 1, true, false, 10000) == 0) ;
+
     frame++;
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
     ws_pkt.payload = (uint8_t *) data;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
-    vTaskDelay(10 / portTICK_PERIOD_MS); // https://www.esp32.com/viewtopic.php?f=2&t=17510&start=10
+    // TODO: I think tyhe problem here is that 
+    // sometimes the entire websocket result isn't available simultaneously.
+    // why: because if you set this delay to a second, it never crashes.
+    // options:
+    // 1. we should accept what we can get, and then wait
+    //    for the rest to arrive later and fill it, then trigger update.
+    //    not sure if the ws call below will support that.
+    // 2. figure out whether request is completely received from httpd
+    //    then call ws recv.
+    vTaskDelay(100 / portTICK_PERIOD_MS); // https://www.esp32.com/viewtopic.php?f=2&t=17510&start=10
 
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 513 * 4);
-    if (ret != ESP_OK) {
-        ESP_LOGE("led_handler", "%d: httpd_ws_recv_frame failed with %d", frame, ret);
-        return ret;
-    }
-    // ESP_LOGI("led_handler", "%d: Got packet with message: %s (len: %d)", frame, ws_pkt.payload, ws_pkt.len);    
 
     if (ret != ESP_OK) {
-        ESP_LOGE("led_handler", "%d: httpd_ws_send_frame failed with %d", frame, ret);
+        ESP_LOGE("led_handler", "%d: httpd_ws_recv_frame failed with %d", frame, ret);
     } else {
         if (!ws_pkt.final) {
             ESP_LOGE("led_handler", "%d: frame was not marked as final", frame);
-            return ESP_OK;
-        }
-        if (ws_pkt.len != 513 * 4) {
+        } else if (ws_pkt.len != 513 * 4) {
             ESP_LOGE("led_handler", "%d: expected length %d but was %d", frame, 513*4, ws_pkt.len);
-            return ESP_OK;
-        }
-        // if (xSemaphoreTake(writing, 1000) == pdTRUE) {
+        } else {
             memcpy(ingested, data, 513 * 4);
             xEventGroupSetBits(mustRedraw, 1);
-        //     xSemaphoreGive(writing);
-        // } else {
-        //     ESP_LOGI("main", "failed to get semaphore");
-        // }
+        }
     }
+    xEventGroupSetBits(readyForNewMessage, 1);
     return ESP_OK;
 }
 

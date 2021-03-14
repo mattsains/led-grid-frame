@@ -20,9 +20,9 @@ export default class extends React.Component {
 
         for(let i = 0; i < this.size[0] * this.size[1]; i++) {
                 const position = i * 4;
-                const red = Math.floor(imgData[position] / 5);
-                const green = Math.floor(imgData[position + 1] / 5);
-                const blue = Math.floor(imgData[position + 2] / 5);
+                const red = Math.floor(imgData[position] / 10);
+                const green = Math.floor(imgData[position + 1] / 10);
+                const blue = Math.floor(imgData[position + 2] / 10);
                 result[i] = (red << 16) | (green << 8) | (blue);
         }
         return result.reverse();

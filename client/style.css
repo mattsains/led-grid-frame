@@ -6,5 +6,5 @@ canvas {
     background-color: black;
     border: 1px solid white;
     image-rendering: crisp-edges;
-    height: 80%;
+    height: 100%;
 }
