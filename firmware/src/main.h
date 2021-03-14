@@ -16,6 +16,7 @@
 #include "freertos/semphr.h"
 #include "esp_task_wdt.h"
 #include "esp_int_wdt.h"
+#include "mqtt_client.h"
 
 void ledUpdate();
 static esp_err_t led_handler(httpd_req_t *req);

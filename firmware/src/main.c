@@ -1,12 +1,13 @@
 #include "main.h"
 #include "wifi_pass.h"
 
+EventGroupHandle_t mustRedraw;
 static SemaphoreHandle_t writing = NULL;
 static unsigned int ingested[513] = {0};
 
 void app_main(void)
 {
-    setup_leds();
+    mustRedraw = xEventGroupCreate();
     writing = xSemaphoreCreateBinary();
     xSemaphoreGive(writing);
 
@@ -21,20 +22,16 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &connect_handler, &server));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &server));
 
-    // TaskHandle_t Core1TaskHnd;
-    // xTaskCreatePinnedToCore(ledUpdate, "led_update", 1000, NULL, 1, &Core1TaskHnd, 1);
-    ledUpdate();
+    TaskHandle_t Core1TaskHnd2;
+    xTaskCreatePinnedToCore(ledUpdate, "led_update", 2000, NULL, 1, &Core1TaskHnd2, 1);
 }
 
 void ledUpdate() {
+    setup_leds();
     while (true) {
-        // if (xSemaphoreTake(writing, portMAX_DELAY) == pdTRUE) {
+        EventBits_t result = xEventGroupWaitBits(mustRedraw, 1, true, false, 1000);
+        if (result > 0)
             set_strip(ingested);
-            // xSemaphoreGive(writing);
-        // } else {
-            // ESP_LOGI("main", "failed to get semaphore from main loop");
-        // }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
@@ -54,7 +51,7 @@ static esp_err_t led_handler(httpd_req_t *req)
         ESP_LOGE("led_handler", "%d: httpd_ws_recv_frame failed with %d", frame, ret);
         return ret;
     }
-    ESP_LOGI("led_handler", "%d: Got packet with message: %s (len: %d)", frame, ws_pkt.payload, ws_pkt.len);    
+    // ESP_LOGI("led_handler", "%d: Got packet with message: %s (len: %d)", frame, ws_pkt.payload, ws_pkt.len);    
 
     if (ret != ESP_OK) {
         ESP_LOGE("led_handler", "%d: httpd_ws_send_frame failed with %d", frame, ret);
@@ -69,6 +66,7 @@ static esp_err_t led_handler(httpd_req_t *req)
         }
         // if (xSemaphoreTake(writing, 1000) == pdTRUE) {
             memcpy(ingested, data, 513 * 4);
+            xEventGroupSetBits(mustRedraw, 1);
         //     xSemaphoreGive(writing);
         // } else {
         //     ESP_LOGI("main", "failed to get semaphore");
