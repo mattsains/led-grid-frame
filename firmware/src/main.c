@@ -30,55 +30,52 @@ void app_main(void)
 void ledUpdate() {
     setup_leds();
     while (true) {
-        EventBits_t result = xEventGroupWaitBits(mustRedraw, 1, true, false, 1000);
+        EventBits_t result = xEventGroupWaitBits(mustRedraw, 1, true, false, 100000);
         if (result > 0)
             set_strip(ingested);
     }
 }
 
-static unsigned int data[513] = {0};
-static unsigned int frame = 0;
+static unsigned int position = 0;
 static esp_err_t led_handler(httpd_req_t *req)
 {
+    static unsigned char data[513 * 4] = {0};
     while (xEventGroupWaitBits(readyForNewMessage, 1, true, false, 10000) == 0) ;
 
-    frame++;
     httpd_ws_frame_t ws_pkt;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.payload = (uint8_t *) data;
+    ws_pkt.payload = data;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
-    // TODO: I think tyhe problem here is that 
-    // sometimes the entire websocket result isn't available simultaneously.
-    // why: because if you set this delay to a second, it never crashes.
-    // options:
-    // 1. we should accept what we can get, and then wait
-    //    for the rest to arrive later and fill it, then trigger update.
-    //    not sure if the ws call below will support that.
-    // 2. figure out whether request is completely received from httpd
-    //    then call ws recv.
-    vTaskDelay(100 / portTICK_PERIOD_MS); // https://www.esp32.com/viewtopic.php?f=2&t=17510&start=10
-
+    
+    // vTaskDelay(10 / portTICK_PERIOD_MS); // https://www.esp32.com/viewtopic.php?f=2&t=17510&start=10
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 513 * 4);
+    
 
     if (ret != ESP_OK) {
-        ESP_LOGE("led_handler", "%d: httpd_ws_recv_frame failed with %d", frame, ret);
+        ESP_LOGE("led_handler", "httpd_ws_recv_frame failed with %d", ret);
     } else {
-        if (!ws_pkt.final) {
-            ESP_LOGE("led_handler", "%d: frame was not marked as final", frame);
-        } else if (ws_pkt.len != 513 * 4) {
-            ESP_LOGE("led_handler", "%d: expected length %d but was %d", frame, 513*4, ws_pkt.len);
-        } else {
-            memcpy(ingested, data, 513 * 4);
-            xEventGroupSetBits(mustRedraw, 1);
+        for (unsigned int i = 0; i< ws_pkt.len;) {
+            unsigned int spaceLeftInData = 513 * 4 - position;
+            unsigned int bytesToFetch;
+            if (ws_pkt.len - i < spaceLeftInData)
+                bytesToFetch = ws_pkt.len;
+            else bytesToFetch = spaceLeftInData;
+            ESP_LOGI("led", "copying from %d into data to %d into ingested, %d bytes", i, position, bytesToFetch);
+            memcpy(ingested + position, data + i, bytesToFetch);
+            i += bytesToFetch;
+            position += bytesToFetch;
+            spaceLeftInData -= bytesToFetch;
+            if (spaceLeftInData == 0) {
+                position = 0;
+                xEventGroupSetBits(mustRedraw, 1);
+            }
         }
+        
     }
     xEventGroupSetBits(readyForNewMessage, 1);
     return ESP_OK;
 }
 
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
-static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
