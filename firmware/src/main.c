@@ -47,10 +47,8 @@ static esp_err_t led_handler(httpd_req_t *req)
     ws_pkt.payload = data;
     ws_pkt.type = HTTPD_WS_TYPE_BINARY;
     
-    // vTaskDelay(10 / portTICK_PERIOD_MS); // https://www.esp32.com/viewtopic.php?f=2&t=17510&start=10
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 513 * 4);
     
-
     if (ret != ESP_OK) {
         ESP_LOGE("led_handler", "httpd_ws_recv_frame failed with %d", ret);
     } else {
@@ -60,7 +58,6 @@ static esp_err_t led_handler(httpd_req_t *req)
             if (ws_pkt.len - i < spaceLeftInData)
                 bytesToFetch = ws_pkt.len;
             else bytesToFetch = spaceLeftInData;
-            ESP_LOGI("led", "copying from %d into data to %d into ingested, %d bytes", i, position, bytesToFetch);
             memcpy(ingested + position, data + i, bytesToFetch);
             i += bytesToFetch;
             position += bytesToFetch;

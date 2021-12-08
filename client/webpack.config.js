@@ -1,12 +1,11 @@
 const path = require('path');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
     entry: path.join(__dirname, 'index.tsx'),
     mode: 'development',
     devtool: 'source-map',
     devServer: {
-        contentBase: path.join(__dirname),
+        contentBase: path.join(__dirname)
     },
     resolve: { extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'] },
     output: { filename: 'index_bundle.js' },
