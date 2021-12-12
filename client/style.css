@@ -5,6 +5,6 @@ body {
 canvas {
     background-color: black;
     border: 1px solid white;
-    image-rendering: crisp-edges;
+    image-rendering: pixelated;
     height: 100%;
 }
