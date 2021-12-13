@@ -22,7 +22,7 @@ export default () => {
     tetris.draw(canvas.ctx);
   }
 
-  setInterval(() => update(), 50);
+  setInterval(() => update(), 1);
   setInterval(() => {
     if (canvas == undefined) {
       canvas = ref.current;

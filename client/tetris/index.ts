@@ -58,37 +58,59 @@ export default new (class {
   private deadTets = new DeadTetrominos();
 
   private controller = new Controller({
-    LEFT: [500, 100],
-    RIGHT: [500, 100],
-    DOWN: [0, 0],
-    A: [500, 100],
-    B: [500, 100],
+    LEFT: [300, 50],
+    RIGHT: [300, 50],
+    DOWN: [100, 60],
+    UP: [0, 0],
+    A: [300, 100],
+    B: [300, 100],
   });
   private lastFall = Date.now();
+  private justDidSoftDrop = false;
 
   update() {
     let now = Date.now();
     if (this.activeTet == undefined) this.generateActiveTet();
 
-    this.moveTetWithButtons(now);
+    let preventDrop = false;
 
-    if (this.controller.wasPressed(BUTTON.DOWN)) {
+    // respond to movement of the tetromino. If it moves, don't immediately drop the tet.
+    if (this.moveTetWithButtons()) preventDrop = true;
+
+    // hard drop
+    if (this.controller.wasPressed(BUTTON.UP)) {
       let desiredPosition: Tetromino;
       do {
         desiredPosition = this.activeTet.clone();
-        desiredPosition.y ++;
+        desiredPosition.y++;
       } while (this.validateAndSetDesiredTetPosition(desiredPosition));
+    }
+
+    // pause drops right after a soft drop. It's easier to predict the movement that way.
+    if (this.justDidSoftDrop) {
+      this.justDidSoftDrop = false;
+      preventDrop = true;
+    }
+
+    // soft drop
+    if (this.controller.wasPressed(BUTTON.DOWN)) {
+      let desiredPosition = this.activeTet.clone();
+      desiredPosition.y++;
+      if (this.validateAndSetDesiredTetPosition(desiredPosition)) {
+        preventDrop = true;
+        this.justDidSoftDrop = true;
+      }
     }
 
     let shouldGravity = false;
     {
       let gravityMillis = now - this.lastFall;
-      if (gravityMillis > 250) {
+      if (gravityMillis > 150) {
         shouldGravity = true;
         this.lastFall = now;
       }
     }
-    if (shouldGravity) {
+    if (shouldGravity && !preventDrop) {
       let nextDropPosition = this.activeTet.clone();
       nextDropPosition.y += 1;
       if (!this.validateAndSetDesiredTetPosition(nextDropPosition)) {
@@ -103,15 +125,35 @@ export default new (class {
     // don't put any code below here
   }
 
-  private moveTetWithButtons(now: number) {
+  /**
+   * Respond to button presses that move the piece
+   * @returns true if the piece moved
+   */
+  private moveTetWithButtons(): boolean {
     let desiredPosition = this.activeTet.clone();
 
-    if (this.controller.wasPressed(BUTTON.LEFT)) desiredPosition.x--;
-    if (this.controller.wasPressed(BUTTON.RIGHT)) desiredPosition.x++;
-    if (this.controller.wasPressed(BUTTON.A)) desiredPosition.rotation -= 1;
-    if (this.controller.wasPressed(BUTTON.B)) desiredPosition.rotation += 1;
+    let moveAskedFor = false;
 
-    this.validateAndSetDesiredTetPosition(desiredPosition);
+    if (this.controller.wasPressed(BUTTON.LEFT)) {
+      moveAskedFor = true;
+      desiredPosition.x--;
+    }
+    if (this.controller.wasPressed(BUTTON.RIGHT)) {
+      moveAskedFor = true;
+      desiredPosition.x++;
+    }
+    if (this.controller.wasPressed(BUTTON.A)) {
+      moveAskedFor = true;
+      desiredPosition.rotation -= 1;
+    }
+    if (this.controller.wasPressed(BUTTON.B)) {
+      moveAskedFor = true;
+      desiredPosition.rotation += 1;
+    }
+
+    return (
+      moveAskedFor && this.validateAndSetDesiredTetPosition(desiredPosition)
+    );
   }
 
   /**
@@ -137,18 +179,23 @@ export default new (class {
     } else return false;
   }
 
+  /**
+   * spawn a new tetromino, or restart the game if it's not possible
+   */
   private generateActiveTet() {
     const shapes: TetrominoShape[] = ["S", "Z", "L", "J", "O", "I"];
     const chosenShape = shapes[Math.floor(Math.random() * shapes.length)];
 
-    if (!this.validateAndSetDesiredTetPosition(new Tetromino(
-      18/2,
-      0,
-      Math.round(Math.random() * 3) - 1,
-      chosenShape
-    ))) {
+    if (
+      !this.validateAndSetDesiredTetPosition(
+        new Tetromino(18 / 2, 0, Math.round(Math.random() * 3) - 1, chosenShape)
+      )
+    ) {
       this.deadTets = new DeadTetrominos();
-    };
+      this.validateAndSetDesiredTetPosition(
+        new Tetromino(18 / 2, 0, Math.round(Math.random() * 3) - 1, chosenShape)
+      );
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D) {
