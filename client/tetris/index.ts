@@ -1,7 +1,6 @@
 import Tetromino, { TetrominoShape } from "./tetromino";
 ("./tetromino");
 import Controller, { BUTTON } from "./controller";
-import { transpileModule } from "typescript";
 
 class DeadTetrominos {
   private pixels: string[][] = [];
@@ -170,10 +169,10 @@ export default new (class {
       pixels
         .map((pos) => this.deadTets.get(...pos))
         .filter((val) => val != undefined).length > 0;
-    const isTetFallingOfEdge =
+    const isTetFallingOffEdge =
       pixels.filter(([x, y]) => x < 0 || x > 18 || y >= 27).length > 0;
 
-    if (!(isPixelObstructing || isTetFallingOfEdge)) {
+    if (!(isPixelObstructing || isTetFallingOffEdge)) {
       this.activeTet = desiredPosition;
       return true;
     } else return false;
