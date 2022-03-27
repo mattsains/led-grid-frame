@@ -7,6 +7,7 @@ export default class extends React.Component {
 
     componentDidMount() {
         this.ctx = (this.canvasRef.current as HTMLCanvasElement).getContext('2d');
+        this.ctx.imageSmoothingEnabled = false;
     }
 
     public setPixel(x: number, y: number, color: number) {

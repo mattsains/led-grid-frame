@@ -10,17 +10,10 @@ export default () => {
     let ref = useRef<Canvas>(null);
     let canvas: Canvas;
 
-    let scroll = 0;
-    let text = "😀🍆🍑😘👌💕🤦‍♀️😎🎶😍🤐😰🤬🤠😈👺"
-
    function draw() {
         canvas.ctx.clearRect(0,0, 19, 27);
         canvas.ctx.fillStyle = "white";
-        canvas.ctx.imageSmoothingEnabled = false;
-        canvas.ctx.font = "20pt FreePixel";
-        canvas.ctx.fillText(text, 19 - Math.floor(scroll), 23);
-        scroll += 0.6;
-        if (scroll > canvas.ctx.measureText(text).width + 19) scroll = 0;
+        
     }
 
     setInterval(() => {
